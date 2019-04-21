@@ -1,0 +1,168 @@
+#### Project on e.coli #####
+
+## Data Download 
+##Install Index and GTF files from ensemble bacteria
+
+## Download SRA file of e.coli Run RNA-seq 
+wget ftp://ftp-trace.ncbi.nih.gov/sra/sra-instant/reads/ByRun/sra/SRR/SRR680/SRR6800317/SRR6800317.sra
+
+### Download SRA toolkit
+
+wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/sratoolkit.current-ubuntu64.tar.gz
+tar xvzf sratoolkit.current-ubuntu64.tar.gz
+
+## Prepare the data
+cd sratoolkit.2.9.6-ubuntu64/
+ls
+cd bin
+ls
+### convert data file from sra to fastq with split R1 and R2
+./fastq-dump --split-3 ../../SRR6800317.sra 
+
+## FASTQ Quality Control
+source activate ngs1
+conda install -c bioconda fastqc
+conda install -c bioconda multiseq 
+fastqc
+mkdir fastqc_report1/
+fastqc *.fastq -o fastqc_report1/
+
+
+### Trimming
+source activate ngs1
+conda install -c bioconda trimmomatic 
+mkdir trimmednew && cd trimmednew
+
+trimmomatic PE -trimlog trimlogfile_1 -summary statSummaryFile_1 SRR6800317_1.fastq SRR6800317_2.fastq R1_paired.fq.gz R1_unpaired.fq.gz R2_paired.fq.gz R2_unpaired.fq.gz ILLUMINACLIP:/home/marwa/miniconda3/pkgs/trimmomatic-0.38-1/share/trimmomatic-0.38-1/adapters/TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
+
+### data of mild trimming 
+#Input Read Pairs: 250000
+#Both Surviving Reads: 228171
+#Both Surviving Read Percent: 91.27
+#Forward Only Surviving Reads: 14892
+#Forward Only Surviving Read Percent: 5.96
+#Reverse Only Surviving Reads: 3643
+#Reverse Only Surviving Read Percent: 1.46
+#Dropped Reads: 3294
+#Dropped Read Percent: 1.32
+
+################################################
+
+5- Alignment
+### BWA 
+
+cd ~/workdir/sample_data
+
+wget  ftp://ftp.ensemblgenomes.org/pub/release-43/bacteria//fasta/bacteria_91_collection/escherichia_coli/dna/Escherichia_coli.HUSEC2011CHR1.dna.chromosome.Chromosome.fa.gz
+ 
+wget ftp://ftp.ensemblgenomes.org/pub/release-43/bacteria//gtf/bacteria_91_collection/escherichia_coli/Escherichia_coli.HUSEC2011CHR1.43.gtf.gz
+
+source activate ngs1
+conda install -c bioconda bwa 
+
+#### Indexing
+
+mkdir -p ~/workdir/bwa_align/bwaIndex && cd ~/workdir/bwa_align/bwaIndex
+ln -s ~/workdir/sample_data/Escherichia_coli.HUSEC2011CHR1.dna.chromosome.Chromosome.fa .
+bwa index -a bwtsw Escherichia_coli.HUSEC2011CHR1.dna.chromosome.Chromosome.fa
+
+#### BWA sequence alignment
+
+cd ~/workdir/bwa_align
+R1="$HOME/workdir/R1_paired.fq.gz"
+R2="$HOME/workdir/R2_paired.fq.gz"
+/usr/bin/time -v bwa mem bwaIndex/ Escherichia_coli.HUSEC2011CHR1.dna.chromosome.Chromosome.fa $R1 $R2 > S1.sam
+
+## Alignment Summary 
+
+			User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 5%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.07
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 2656
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 102
+	Voluntary context switches: 2
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1	
+
+
+
+### Hisat Alignment 
+
+cd ~/workdir/sample_data
+wget  ftp://ftp.ensemblgenomes.org/pub/release-43/bacteria//fasta/bacteria_91_collection/escherichia_coli/dna/Escherichia_coli.HUSEC2011CHR1.dna.chromosome.Chromosome.fa.gz
+ 
+wget ftp://ftp.ensemblgenomes.org/pub/release-43/bacteria//gtf/bacteria_91_collection/escherichia_coli/Escherichia_coli.HUSEC2011CHR1.43.gtf.gz
+
+source activate ngs1
+conda install -c bioconda hisat2 
+
+## Indexing
+
+mkdir -p ~/workdir2/hisat_align/hisatIndex && cd ~/workdir2/hisat_align/hisatIndex
+ln -s ~/workdir2/ Escherichia_coli.HUSEC2011CHR1.dna.chromosome.Chromosome.fa .
+
+hisat2_extract_splice_sites.py ~/workdir2/sample_data/Escherichia_coli.HUSEC2011CHR1.43.gtf > splicesites.tsv
+
+hisat2_extract_exons.py ~/workdir/sample_data/ Escherichia_coli.HUSEC2011CHR1.43.gtf > exons.tsv
+
+hisat2-build -p 1 --ss splicesites.tsv --exon exons.tsv Escherichia_coli.HUSEC2011CHR1.dna.chromosome.Chromosome.fa  Escherichia_coli.HUSEC2011CHR1.dna.chromosome.Chromosome
+
+#Output files: "Escherichia_coli.HUSEC2011CHR1.dna.chromosome.Chromosome.*.ht2"
+#  Line rate: 7 (line is 128 bytes)
+ # Lines per side: 1 (side is 128 bytes)
+ # Offset rate: 4 (one in 16)
+ # FTable chars: 10
+ # Strings: unpacked
+ # Local offset rate: 3 (one in 8)
+ # Local fTable chars: 6
+ # Local sequence length: 57344
+ # Local sequence overlap between two consecutive indexes: 1024
+ # Endianness: little
+ # Actual local endianness: little
+ # Sanity checking: disabled
+ # Assertions: disabled
+ # Random seed: 0
+ # Sizeofs: void*:8, int:4, long:8, size_t:8
+
+## Hisat Alignment
+
+## sample  1 
+cd ~/workdir/hisat_align
+R1="$HOME/workdir/R1_paired.fq.gz"
+R2="$HOME/workdir/R2_paired.fq.gz"
+hisat2 -p 1 -x hisatIndex/Escherichia_coli.HUSEC2011CHR1.dna.chromosome.Chromosome --dta --rna-strandness RF -1 $R1 -2 $R2 -S R1.sam
+
+### Alignment summary Sample 1
+
+
+986086 reads; of these:
+  986086 (100.00%) were paired; of these:
+    958959 (97.25%) aligned concordantly 0 times
+    26730 (2.71%) aligned concordantly exactly 1 time
+    397 (0.04%) aligned concordantly >1 times
+    ----
+    958959 pairs aligned concordantly 0 times; of these:
+      57 (0.01%) aligned discordantly 1 time
+    ----
+    958902 pairs aligned 0 times concordantly or discordantly; of these:
+      1917804 mates make up the pairs; of these:
+        1912690 (99.73%) aligned 0 times
+        4949 (0.26%) aligned exactly 1 time
+        165 (0.01%) aligned >1 times
+3.02% overall alignment rate
+
+
