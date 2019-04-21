@@ -155,7 +155,7 @@ conda install samtools
 # convert the SAM file into BAM file 
 samtools view -bS S1.sam > S1.bam
 
-### I can not recognize the mismatch 
+
 
 
 
