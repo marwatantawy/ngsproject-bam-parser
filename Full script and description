@@ -146,7 +146,14 @@ R1="$HOME/workdir/R1_paired.fq.gz"
 R2="$HOME/workdir/R2_paired.fq.gz"
 hisat2 -p 1 -x hisatIndex/Escherichia_coli.HUSEC2011CHR1.dna.chromosome.Chromosome --dta --rna-strandness RF -1 $R1 -2 $R2 -S R1.sam
 
-### Alignment summary Sample 1
+## 6- Assembly
+## Prepare the SAM file for assembly
+# install Samtools
+source activate ngs1
+conda install samtools
+
+# convert the SAM file into BAM file 
+samtools view -bS S1.sam > S1.bam
 
 
 
