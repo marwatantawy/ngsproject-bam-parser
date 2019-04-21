@@ -149,20 +149,5 @@ hisat2 -p 1 -x hisatIndex/Escherichia_coli.HUSEC2011CHR1.dna.chromosome.Chromoso
 ### Alignment summary Sample 1
 
 
-986086 reads; of these:
-  986086 (100.00%) were paired; of these:
-    958959 (97.25%) aligned concordantly 0 times
-    26730 (2.71%) aligned concordantly exactly 1 time
-    397 (0.04%) aligned concordantly >1 times
-    ----
-    958959 pairs aligned concordantly 0 times; of these:
-      57 (0.01%) aligned discordantly 1 time
-    ----
-    958902 pairs aligned 0 times concordantly or discordantly; of these:
-      1917804 mates make up the pairs; of these:
-        1912690 (99.73%) aligned 0 times
-        4949 (0.26%) aligned exactly 1 time
-        165 (0.01%) aligned >1 times
-3.02% overall alignment rate
 
 
